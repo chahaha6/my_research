@@ -88,7 +88,7 @@ def run_mode_sdas_pic(problem, pop_size=POP_SIZE, generations=GENERATIONS,
     plt.grid(True, alpha=0.3)
     plot_path = results_dir / "hv_convergence_mode_sdas_pic.png"
     plt.savefig(plot_path, dpi=150, bbox_inches='tight')
-    plt.close()          # 关闭图形，避免与后续图形重叠
+    plt.show()                     # 弹出图形窗口
     print(f"[MODE‑SDAS‑PIC] Convergence plot saved to {plot_path}")
 
     return hv_history, final_raw, final_dec, final_obj
@@ -162,7 +162,7 @@ def run_nsga2(problem, pop_size=POP_SIZE, generations=GENERATIONS,
     plt.grid(True, alpha=0.3)
     plot_path = results_dir / "hv_convergence_nsga2.png"
     plt.savefig(plot_path, dpi=150, bbox_inches='tight')
-    plt.close()
+    plt.show()                     # 弹出图形窗口
     print(f"[NSGA‑II] Convergence plot saved to {plot_path}")
 
     return hv_history, final_raw, final_dec, final_obj

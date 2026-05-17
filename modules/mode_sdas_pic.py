@@ -17,7 +17,7 @@ class MODE_SDAS_PIC:
     def __init__(self, problem, pop_size=100, generations=100,
                  Nsub=10, L=10, Rmem=5, CR=0.5, F=0.5, probVar=0.8,
                  alpha=0.15, sigma=0.01, gamma=0.7,
-                 ref_front_file=None):
+                 ref_front_file=None, elite_prob=0.6, archive_size=50):
         self.problem = problem
         self.pop_size = pop_size
         self.max_gen = generations
@@ -30,6 +30,8 @@ class MODE_SDAS_PIC:
         self.alpha = alpha
         self.sigma = sigma
         self.gamma = gamma
+        self.elite_prob = elite_prob
+        self.archive_size = archive_size
 
         self.task_options = self._build_task_options()
         self.num_tasks = len(self.task_options)
@@ -39,24 +41,21 @@ class MODE_SDAS_PIC:
         self.W = None
         self.neighbor_list = None
         self.zideal = None
-        self.r1 = 0.6 + 0.4 * np.random.rand()
-        self.r2 = self.r1 + (1 - self.r1) * np.random.rand()
+        self.r1 = 0.6          # PICEO 操作区参数（固定初始值）
+        self.r2 = 0.85
         self.S = 1.0
         self.gen_count = 0
         self.mem_theta = np.zeros((Rmem, Nsub))
 
-        # 自适应权重增删参数
-        self.check_interval = 20
-        self.weight_deletion_threshold = 2
-        self.max_subspace_num = int(Nsub * 1.5)
-        self.min_subspace_num = max(2, Nsub // 2)
-        self.last_assoc_gen = np.full(Nsub, -1)
-        self.crowd_factor = 1.5
-
+        # 已移除自适应权重增删相关属性
         self.pop_dec = None
         self.pop_obj = None
         self.pop_raw = None
         self.associate = None
+
+        # 双档案精英引导相关
+        self.external_archive_dec = []
+        self.external_archive_obj = []
 
         self.hv_history = []
         self.hv_indicator = None
@@ -112,25 +111,42 @@ class MODE_SDAS_PIC:
                 pop_dec[i, d] = random.randint(0, self.max_options[d]-1)
         return pop_dec
 
+    # ---------- 双档案精英引导的差分变异 ----------
     def de_operator(self, parent_idx):
         D = self.D
         parent_dec = self.pop_dec[parent_idx]
         sub = self.associate[parent_idx]
-        # 防止 sub 越界（权重删除后可能残留旧索引）
         if sub >= self.Nsub or sub < 0:
             sub = random.randint(0, self.Nsub - 1)
-        neighbors = self.neighbor_list[sub] if sub < len(self.neighbor_list) and self.neighbor_list[sub] else list(range(self.Nsub))
-        avail = [j for j in range(self.pop_size) if self.associate[j] in neighbors]
-        if len(avail) < 2:
-            avail = list(range(self.pop_size))
-        r1, r2 = random.sample(avail, 2)
+
+        if (random.random() < self.elite_prob) and len(self.external_archive_dec) >= 2:
+            base_idx = random.randrange(len(self.external_archive_dec))
+            base_dec = self.external_archive_dec[base_idx]
+            neighbors = self.neighbor_list[sub] if sub < len(self.neighbor_list) and self.neighbor_list[sub] else list(range(self.Nsub))
+            avail = [j for j in range(self.pop_size) if self.associate[j] in neighbors]
+            if len(avail) < 2:
+                avail = list(range(self.pop_size))
+            r1, r2 = random.sample(avail, 2)
+            x1 = self.pop_dec[r1]
+            x2 = self.pop_dec[r2]
+        else:
+            base_dec = parent_dec
+            neighbors = self.neighbor_list[sub] if sub < len(self.neighbor_list) and self.neighbor_list[sub] else list(range(self.Nsub))
+            avail = [j for j in range(self.pop_size) if self.associate[j] in neighbors]
+            if len(avail) < 2:
+                avail = list(range(self.pop_size))
+            r1, r2 = random.sample(avail, 2)
+            x1 = self.pop_dec[r1]
+            x2 = self.pop_dec[r2]
+
         trial = np.zeros(D)
         for d in range(D):
             ki = self.max_options[d]
-            phi = parent_dec[d] + self.F * (self.pop_dec[r1, d] - self.pop_dec[r2, d])
+            phi = base_dec[d] + self.F * (x1[d] - x2[d])
             phi = np.round(phi)
             phi = phi % ki
             trial[d] = phi
+
         mask = np.random.rand(D) < self.CR
         if not np.any(mask):
             mask[random.randint(0, D-1)] = True
@@ -140,71 +156,7 @@ class MODE_SDAS_PIC:
         child_dec = np.clip(child_dec, 0, np.array(self.max_options)-1)
         return child_dec
 
-    # ---------- 自适应权重增删 ----------
-    def adapt_weights(self, gen):
-        if gen % self.check_interval != 0 or gen == 0:
-            return
-
-        # 统计每个子空间当前关联个体数（确保 associate 索引有效）
-        counts = np.zeros(self.Nsub, dtype=int)
-        for sub in self.associate:
-            if sub < self.Nsub:
-                counts[sub] += 1
-
-        for sub in range(self.Nsub):
-            if counts[sub] > 0:
-                self.last_assoc_gen[sub] = gen
-
-        # 删除长期无关联的子空间
-        to_delete = []
-        for sub in range(self.Nsub):
-            if gen - self.last_assoc_gen[sub] >= self.weight_deletion_threshold:
-                if self.Nsub - len(to_delete) > self.min_subspace_num:
-                    to_delete.append(sub)
-
-        if to_delete:
-            for sub in reversed(to_delete):
-                self.W = np.delete(self.W, sub, axis=0)
-                self.last_assoc_gen = np.delete(self.last_assoc_gen, sub)
-                self.mem_theta = np.delete(self.mem_theta, sub, axis=1)
-            self.Nsub = self.W.shape[0]
-            self.neighbor_list = precompute_neighbors(self.W, self.L)
-
-        # 重新统计关联（删除后可能变化）
-        counts = np.zeros(self.Nsub, dtype=int)
-        for sub in self.associate:
-            if sub < self.Nsub:
-                counts[sub] += 1
-
-        if self.Nsub == 0:
-            return
-
-        # 插入新权重（拥挤区域）
-        avg_count = np.mean(counts) if np.sum(counts) > 0 else 0
-        new_weights = []
-        for sub in range(self.Nsub):
-            if counts[sub] > self.crowd_factor * avg_count and counts[sub] > 1:
-                neighbors = self.neighbor_list[sub] if self.neighbor_list else []
-                if not neighbors:
-                    continue
-                nb = random.choice(neighbors)
-                w_new = 0.5 * self.W[sub] + 0.5 * self.W[nb]
-                w_new = w_new / np.linalg.norm(w_new)
-                new_weights.append(w_new)
-
-        num_to_add = min(len(new_weights), self.max_subspace_num - self.Nsub)
-        if num_to_add > 0:
-            added = np.array(new_weights[:num_to_add])
-            self.W = np.vstack([self.W, added])
-            self.last_assoc_gen = np.append(self.last_assoc_gen, np.full(num_to_add, gen))
-            extra_mem = np.zeros((self.Rmem, num_to_add))
-            self.mem_theta = np.hstack([self.mem_theta, extra_mem])
-
-        # 更新子空间数量及邻域
-        self.Nsub = self.W.shape[0]
-        self.neighbor_list = precompute_neighbors(self.W, self.L)
-
-    # ---------- 环境选择：每个子空间内部非支配排序 + 拥挤距离 ----------
+    # ---------- 环境选择（子空间内部非支配排序 + 拥挤距离） ----------
     def select_next_generation(self, combined_dec, combined_obj, combined_raw):
         merged_norm = combined_obj
         obj_mat = self.get_obj_matrix(merged_norm)
@@ -215,7 +167,6 @@ class MODE_SDAS_PIC:
         for idx, sub in enumerate(all_assoc):
             sub_inds[sub].append(idx)
 
-        # 平均容量分配
         base = self.pop_size // self.Nsub
         remainder = self.pop_size - base * self.Nsub
         capacities = [base] * self.Nsub
@@ -253,10 +204,40 @@ class MODE_SDAS_PIC:
                 selected_indices.extend(add)
 
         selected_indices = selected_indices[:self.pop_size]
-
         self.pop_dec = combined_dec[selected_indices]
         self.pop_obj = [merged_norm[i] for i in selected_indices]
         self.pop_raw = [combined_raw[i] for i in selected_indices]
+
+    # ---------- 更新全局精英档案 ----------
+    def update_archive(self):
+        if len(self.pop_obj) == 0:
+            return
+        combined_obj = self.external_archive_obj + self.pop_obj
+        combined_dec = self.external_archive_dec + [d for d in self.pop_dec]
+        if len(combined_obj) == 0:
+            return
+        fronts = non_dominated_sort(combined_obj)
+        new_archive_obj = []
+        new_archive_dec = []
+        count = 0
+        for f in fronts:
+            if count >= self.archive_size:
+                break
+            if count + len(f) <= self.archive_size:
+                for i in f:
+                    new_archive_obj.append(combined_obj[i])
+                    new_archive_dec.append(combined_dec[i])
+                count += len(f)
+            else:
+                need = self.archive_size - count
+                cd = crowding_distance(f, combined_obj)
+                sorted_f = sorted(f, key=lambda i: cd[i], reverse=True)
+                for i in sorted_f[:need]:
+                    new_archive_obj.append(combined_obj[i])
+                    new_archive_dec.append(combined_dec[i])
+                break
+        self.external_archive_obj = new_archive_obj
+        self.external_archive_dec = new_archive_dec
 
     def compute_hv(self, objs):
         F = self.get_obj_matrix(objs)
@@ -295,15 +276,14 @@ class MODE_SDAS_PIC:
         D_mat = fast_cal_distance(obj_mat, self.W)
         self.associate = np.argmin(D_mat, axis=1)
 
-        for sub in self.associate:
-            self.last_assoc_gen[sub] = 0
+        self.update_archive()
 
         hv = self.compute_hv(self.pop_obj)
         self.hv_history.append(hv)
         print(f"Init: HV={hv:.4f}")
 
         for gen in range(self.max_gen):
-            # 自适应选择概率
+            # 自适应选择概率（基于推动距离）
             if self.gen_count < self.Rmem:
                 prob_sub = np.ones(self.Nsub) / self.Nsub
             else:
@@ -323,7 +303,7 @@ class MODE_SDAS_PIC:
                 r = random.random()
                 sub = np.searchsorted(cum_prob, r)
                 if sub >= self.Nsub:
-                    sub = random.randint(0, self.Nsub-1)
+                    sub = random.randint(0, self.Nsub - 1)
                 n_evo[sub] += 1
 
             offspring_dec = []
@@ -352,6 +332,7 @@ class MODE_SDAS_PIC:
                 off_obj_mat = self.get_obj_matrix(off_obj)
                 self.zideal = np.minimum(self.zideal, np.min(off_obj_mat, axis=0))
 
+            # ---- PICEO 修复 ----
             if len(offspring_dec) >= 3:
                 offspring_dec, self.r1, self.r2, self.S = pic_repair(
                     self, offspring_dec, off_obj, offspring_sub, gen, self.max_gen)
@@ -362,6 +343,7 @@ class MODE_SDAS_PIC:
                     off_obj.append(obj)
                     off_raw.append(raw)
 
+            # 合并父子代
             if len(offspring_dec) > 0:
                 combined_obj = self.pop_obj + off_obj
                 combined_raw = self.pop_raw + off_raw
@@ -371,7 +353,7 @@ class MODE_SDAS_PIC:
                 combined_raw = self.pop_raw
                 combined_dec = self.pop_dec.copy()
 
-            # 环境选择（子空间内部非支配排序+拥挤距离）
+            # 环境选择
             self.select_next_generation(combined_dec, combined_obj, combined_raw)
 
             # 重新关联
@@ -379,13 +361,15 @@ class MODE_SDAS_PIC:
             D_new = fast_cal_distance(obj_mat_new, self.W)
             self.associate = np.argmin(D_new, axis=1)
 
+            # 更新精英档案
+            self.update_archive()
+
             # 更新推动距离记忆
             theta_sub = np.zeros(self.Nsub)
             for idx, child_dec in enumerate(offspring_dec):
                 sub = offspring_sub[idx] if idx < len(offspring_sub) else 0
-                # 同样确保 sub 不越界
                 if sub >= self.Nsub:
-                    sub = random.randint(0, self.Nsub-1)
+                    sub = random.randint(0, self.Nsub - 1)
                 child_obj = off_obj[idx]
                 sub_pop_idx = [i for i in range(len(self.pop_obj)) if self.associate[i] == sub]
                 if sub_pop_idx:
@@ -405,15 +389,12 @@ class MODE_SDAS_PIC:
 
             self.gen_count += 1
 
-            # 自适应权重增删
-            self.adapt_weights(gen)
-
             hv = self.compute_hv(self.pop_obj)
             self.hv_history.append(hv)
 
             profits = [raw['total_profit'] for raw in self.pop_raw]
             loads = [raw['load_balance'] for raw in self.pop_raw]
             print(f"Gen {gen+1:3d}: profit_max={max(profits):6.1f}, "
-                  f"load_min={min(loads):8.2f}, HV={hv:.4f}, Nsub={self.Nsub}")
+                  f"load_min={min(loads):8.2f}, HV={hv:.4f}")
 
         return self.pop_dec, self.pop_raw, self.pop_obj, self.hv_history
