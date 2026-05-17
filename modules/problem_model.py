@@ -53,6 +53,26 @@ class SatelliteSchedulingProblem:
         """未要求容量约束，默认返回 True"""
         return True
 
+    def check_time_window_overlap(self, solution):
+        """同一卫星上的任务时间不能重叠"""
+        for sat_idx in range(len(self.attitudes)):
+            # 提取该卫星上的所有任务
+            tasks_on_sat = [s for s in solution if s[2] == sat_idx]
+            if len(tasks_on_sat) < 2:
+                continue
+            # 收集窗口的开始和结束时间
+            intervals = []
+            for task_id, win_idx, _ in tasks_on_sat:
+                tw = self.timewindows[sat_idx].iloc[win_idx]
+                intervals.append((tw['start_time'], tw['end_time']))
+            # 按开始时间排序
+            intervals.sort(key=lambda x: x[0])
+            # 检查相邻窗口是否重叠（严格重叠：后一个开始 < 前一个结束）
+            for i in range(len(intervals) - 1):
+                if intervals[i+1][0] < intervals[i][1]:
+                    return False
+        return True
+
     # ---------- 目标函数 ----------
     def total_profit(self, solution):
         '''总收益最大'''
@@ -116,7 +136,8 @@ class SatelliteSchedulingProblem:
     def evaluate_solution(self, solution):
         feasible = (self.check_task_uniqueness(solution) and
                     self.check_window_validity(solution) and
-                    self.check_satellite_capacity(solution))
+                    self.check_satellite_capacity(solution) and
+                    self.check_time_window_overlap(solution))   # 新增时间重叠约束
         objectives = {
             'total_profit': self.total_profit(solution),
             'load_balance': self.load_balance(solution),
