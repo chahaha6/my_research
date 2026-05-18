@@ -15,9 +15,10 @@ os.environ['OMP_NUM_THREADS'] = '1'
 
 class MODE_SDAS_PIC:
     def __init__(self, problem, pop_size=100, generations=100,
-                 Nsub=10, L=10, Rmem=5, CR=0.5, F=0.5, probVar=0.8,
-                 alpha=0.15, sigma=0.01, gamma=0.7,
+                 Nsub=9, L=10, Rmem=5, CR=0.5, F=0.5, probVar=0.8,
+                 alpha=0.15, sigma=0.01, gamma=0.7,          # 调整 PICEO 参数
                  ref_front_file=None, elite_prob=0.6, archive_size=50):
+        """alpha=0.15, sigma=0.01"""
         self.problem = problem
         self.pop_size = pop_size
         self.max_gen = generations
@@ -41,13 +42,20 @@ class MODE_SDAS_PIC:
         self.W = None
         self.neighbor_list = None
         self.zideal = None
-        self.r1 = 0.6          # PICEO 操作区参数（固定初始值）
+        self.r1 = 0.6 
         self.r2 = 0.85
         self.S = 1.0
         self.gen_count = 0
         self.mem_theta = np.zeros((Rmem, Nsub))
 
-        # 已移除自适应权重增删相关属性
+        # 自适应权重增删参数
+        self.check_interval = 12
+        self.weight_deletion_threshold = 2
+        self.max_subspace_num = int(Nsub * 1.5)
+        self.min_subspace_num = max(2, Nsub // 2)
+        self.last_assoc_gen = np.full(Nsub, -1)
+        self.crowd_factor = 1.5
+
         self.pop_dec = None
         self.pop_obj = None
         self.pop_raw = None
@@ -156,7 +164,66 @@ class MODE_SDAS_PIC:
         child_dec = np.clip(child_dec, 0, np.array(self.max_options)-1)
         return child_dec
 
-    # ---------- 环境选择（子空间内部非支配排序 + 拥挤距离） ----------
+    # ---------- 自适应权重增删 ----------
+    def adapt_weights(self, gen):
+        if gen % self.check_interval != 0 or gen == 0:
+            return
+
+        counts = np.zeros(self.Nsub, dtype=int)
+        for sub in self.associate:
+            if sub < self.Nsub:
+                counts[sub] += 1
+
+        for sub in range(self.Nsub):
+            if counts[sub] > 0:
+                self.last_assoc_gen[sub] = gen
+
+        to_delete = []
+        for sub in range(self.Nsub):
+            if gen - self.last_assoc_gen[sub] >= self.weight_deletion_threshold:
+                if self.Nsub - len(to_delete) > self.min_subspace_num:
+                    to_delete.append(sub)
+
+        if to_delete:
+            for sub in reversed(to_delete):
+                self.W = np.delete(self.W, sub, axis=0)
+                self.last_assoc_gen = np.delete(self.last_assoc_gen, sub)
+                self.mem_theta = np.delete(self.mem_theta, sub, axis=1)
+            self.Nsub = self.W.shape[0]
+            self.neighbor_list = precompute_neighbors(self.W, self.L)
+
+        counts = np.zeros(self.Nsub, dtype=int)
+        for sub in self.associate:
+            if sub < self.Nsub:
+                counts[sub] += 1
+
+        if self.Nsub == 0:
+            return
+
+        avg_count = np.mean(counts) if np.sum(counts) > 0 else 0
+        new_weights = []
+        for sub in range(self.Nsub):
+            if counts[sub] > self.crowd_factor * avg_count and counts[sub] > 1:
+                neighbors = self.neighbor_list[sub] if self.neighbor_list else []
+                if not neighbors:
+                    continue
+                nb = random.choice(neighbors)
+                w_new = 0.5 * self.W[sub] + 0.5 * self.W[nb]
+                w_new = w_new / np.linalg.norm(w_new)
+                new_weights.append(w_new)
+
+        num_to_add = min(len(new_weights), self.max_subspace_num - self.Nsub)
+        if num_to_add > 0:
+            added = np.array(new_weights[:num_to_add])
+            self.W = np.vstack([self.W, added])
+            self.last_assoc_gen = np.append(self.last_assoc_gen, np.full(num_to_add, gen))
+            extra_mem = np.zeros((self.Rmem, num_to_add))
+            self.mem_theta = np.hstack([self.mem_theta, extra_mem])
+
+        self.Nsub = self.W.shape[0]
+        self.neighbor_list = precompute_neighbors(self.W, self.L)
+
+    # ---------- 环境选择 ----------
     def select_next_generation(self, combined_dec, combined_obj, combined_raw):
         merged_norm = combined_obj
         obj_mat = self.get_obj_matrix(merged_norm)
@@ -283,7 +350,7 @@ class MODE_SDAS_PIC:
         print(f"Init: HV={hv:.4f}")
 
         for gen in range(self.max_gen):
-            # 自适应选择概率（基于推动距离）
+            # 自适应选择概率
             if self.gen_count < self.Rmem:
                 prob_sub = np.ones(self.Nsub) / self.Nsub
             else:
@@ -332,10 +399,11 @@ class MODE_SDAS_PIC:
                 off_obj_mat = self.get_obj_matrix(off_obj)
                 self.zideal = np.minimum(self.zideal, np.min(off_obj_mat, axis=0))
 
-            # ---- PICEO 修复 ----
+            # ---- PICEO 修复（参数已调小）----
             if len(offspring_dec) >= 3:
                 offspring_dec, self.r1, self.r2, self.S = pic_repair(
                     self, offspring_dec, off_obj, offspring_sub, gen, self.max_gen)
+                # 重新评估修复后的子代
                 off_obj = []
                 off_raw = []
                 for dec in offspring_dec:
@@ -389,12 +457,18 @@ class MODE_SDAS_PIC:
 
             self.gen_count += 1
 
+            # 自适应权重增删
+            self.adapt_weights(gen)
+
             hv = self.compute_hv(self.pop_obj)
             self.hv_history.append(hv)
 
             profits = [raw['total_profit'] for raw in self.pop_raw]
             loads = [raw['load_balance'] for raw in self.pop_raw]
+            attitudes = [raw['attitude_manoeuvre'] for raw in self.pop_raw]
             print(f"Gen {gen+1:3d}: profit_max={max(profits):6.1f}, "
-                  f"load_min={min(loads):8.2f}, HV={hv:.4f}")
+                  f"load_min={min(loads):8.2f}, "
+                  f"att_min={min(attitudes):8.2f}, "
+                  f"HV={hv:.4f}, Nsub={self.Nsub}")
 
         return self.pop_dec, self.pop_raw, self.pop_obj, self.hv_history
