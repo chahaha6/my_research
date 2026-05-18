@@ -198,7 +198,7 @@ def main():
         pop_size=POP_SIZE,
         generations=GENERATIONS,
         Nsub=10, L=3, Rmem=5, CR=0.5, F=0.5,
-        alpha=0.15, sigma=0.01, gamma=0.7,
+        alpha=0.1, sigma=0.01, gamma=0.7,
         ref_front_file=ref_front_file
     )
 

@@ -54,7 +54,7 @@ class MODE_SDAS_PIC:
         self.max_subspace_num = int(Nsub * 1.5)
         self.min_subspace_num = max(2, Nsub // 2)
         self.last_assoc_gen = np.full(Nsub, -1)
-        self.crowd_factor = 1.5
+        self.crowd_factor = 0.4
 
         self.pop_dec = None
         self.pop_obj = None
