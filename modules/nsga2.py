@@ -199,7 +199,10 @@ class NSGA2:
 
             profits = [raw['total_profit'] for raw in self.pop_raw]
             loads = [raw['load_balance'] for raw in self.pop_raw]
+            attitudes = [raw['attitude_manoeuvre'] for raw in self.pop_raw]
             print(f"Gen {gen+1:3d}: profit_max={max(profits):6.1f}, "
-                  f"load_min={min(loads):8.2f}, HV={hv:.4f}")
+                  f"load_min={min(loads):8.2f}, "
+                  f"att_min={min(attitudes):8.2f}, "
+                  f"HV={hv:.4f}")
 
         return self.pop_dec, self.pop_raw, self.pop_obj, self.hv_history
