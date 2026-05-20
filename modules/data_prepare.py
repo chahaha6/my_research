@@ -1,78 +1,115 @@
+import os
 import pandas as pd
 from datetime import datetime
-import os
 
 
-#读取原 tasklist 文件
-task_file = "Loacal_Data/tasklist.txt"
-cols = ['task_id', 'latitude', 'longitude', 'profit', 'duration', 'min_quality']
-task_data = pd.read_csv(task_file, delim_whitespace=True, names=cols)
+LOCAL_DATA_DIR = "Loacal_Data"
+CSV_DATA_DIR = "CSV_Data"
 
-# 保存为标准 CSV
-task_data.to_csv("CSV_Data/task_info_standard.csv", index=False)
-print("任务信息已处理为标准 CSV，保留最低质量列: task_info_standard.csv")
+os.makedirs(CSV_DATA_DIR, exist_ok=True)
 
 
-attitude_input_folder = "Loacal_Data/"
-output_folder = "CSV_Data"
+def parse_datetime(parts, offset):
+    """
+    从 parts[offset:offset+6] 解析时间：
+    year month day hour minute second
+    支持小数秒。
+    """
+    year = int(parts[offset])
+    month = int(parts[offset + 1])
+    day = int(parts[offset + 2])
+    hour = int(parts[offset + 3])
+    minute = int(parts[offset + 4])
 
-os.makedirs(output_folder, exist_ok=True)
+    sec_float = float(parts[offset + 5])
+    sec = int(sec_float)
+    micro = int(round((sec_float - sec) * 1_000_000))
+
+    return datetime(year, month, day, hour, minute, sec, micro)
+
+
+# =========================================================
+# 1. 处理 tasklist.txt
+# =========================================================
+
+task_file = os.path.join(LOCAL_DATA_DIR, "tasklist.txt")
+
+
+task_cols = [
+    "task_id",
+    "latitude",
+    "longitude",
+    "profit",
+    "duration",
+    "extra_attr"
+]
+
+task_data = pd.read_csv(
+    task_file,
+    sep=r"\s+",
+    names=task_cols
+)
+
+task_data["task_id"] = task_data["task_id"].astype(int)
+task_data["profit"] = task_data["profit"].astype(float)
+task_data["duration"] = task_data["duration"].astype(float)
+
+task_output = os.path.join(CSV_DATA_DIR, "task_info_standard.csv")
+task_data.to_csv(task_output, index=False)
+
+print(f"任务信息已保存：{task_output}")
+
+
+# =========================================================
+# 2. 处理 outputattitude_i.txt
+# =========================================================
 
 for i in range(1, 11):
-
-    input_file = os.path.join(attitude_input_folder, f"outputattitude_{i}.txt")
-    output_file = os.path.join(output_folder, f"outputattitude_{i}.csv")
+    input_file = os.path.join(LOCAL_DATA_DIR, f"outputattitude_{i}.txt")
+    output_file = os.path.join(CSV_DATA_DIR, f"outputattitude_{i}.csv")
 
     if not os.path.exists(input_file):
         print(f"{input_file} 不存在，跳过")
         continue
 
-    cols = [
-        'year','month','day',
-        'hour','minute','second',
-        'angle_x','angle_y','angle_z',
-        'val1','val2','val3','val4','val5'
-    ]
+    rows = []
 
-    # 读取TXT
-    df = pd.read_csv(
-        input_file,
-        sep=r'\s+',
-        names=cols
+    with open(input_file, "r", encoding="utf-8") as f:
+        for line in f:
+            parts = line.split()
+
+            if len(parts) < 9:
+                continue
+
+            try:
+                dt = parse_datetime(parts, 0)
+
+                # 这里沿用你原来的角度列
+                angle_x = float(parts[6])
+                angle_y = float(parts[7])
+                angle_z = float(parts[8])
+
+                rows.append([dt, angle_x, angle_y, angle_z])
+
+            except Exception as e:
+                print(f"姿态行解析失败：{line.strip()}，错误：{e}")
+
+    df = pd.DataFrame(
+        rows,
+        columns=["dt", "angle_x", "angle_y", "angle_z"]
     )
 
-    # 只保留必要列
-    df = df[[
-        'year','month','day',
-        'hour','minute','second',
-        'angle_x','angle_y','angle_z'
-    ]]
-
-    # datetime列
-    df['dt'] = df.apply(
-        lambda r: datetime(
-            int(r.year),
-            int(r.month),
-            int(r.day),
-            int(r.hour),
-            int(r.minute),
-            int(r.second)
-        ),
-        axis=1
-    )
-
-    # 保存CSV
     df.to_csv(output_file, index=False)
+    print(f"{input_file} -> {output_file}")
 
 
-timewindow_input_folder = "Loacal_Data/"
-time_window_output_folder = "CSV_Data"
-
-os.makedirs(time_window_output_folder, exist_ok=True)
+# =========================================================
+# 3. 处理 outputtimewindow_i.txt
+# =========================================================
 
 for i in range(1, 11):
-    input_file = os.path.join(timewindow_input_folder, f"outputtimewindow_{i}.txt")
-    output_file = os.path.join(time_window_output_folder, f"outputtimewindow_{i}.csv")
+    input_file = os.path.join(LOCAL_DATA_DIR, f"outputtimewindow_{i}.txt")
+    output_file = os.path.join(CSV_DATA_DIR, f"outputtimewindow_{i}.csv")
 
     if not os.path.exists(input_file):
         print(f"{input_file} 不存在，跳过")
@@ -81,43 +118,58 @@ for i in range(1, 11):
     window_list = []
     current_task = None
 
-    with open(input_file, 'r') as f:
+    with open(input_file, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
+
             if not line:
                 continue
 
-            # 如果整行是任务编号
+            # 跳过 s1 / s2 这种卫星标识
+            if line.startswith("s"):
+                continue
+
+            # 任务编号行
             if line.isdigit():
                 current_task = int(line)
                 continue
 
-            # 窗口行
             parts = line.split()
-            if len(parts) >= 13:
-                try:
-                    # 将秒列 float 转 int，直接构造 datetime
-                    start = datetime(
-                        int(parts[0]), int(parts[1]), int(parts[2]),
-                        int(parts[3]), int(parts[4]), int(float(parts[5]))
-                    )
-                    end = datetime(
-                        int(parts[6]), int(parts[7]), int(parts[8]),
-                        int(parts[9]), int(parts[10]), int(float(parts[11]))
-                    )
-                    window_length = float(parts[12])
-                    window_list.append([current_task, start, end, window_length])
-                except Exception as e:
-                    print(f"警告：行解析失败 -> {line}, 错误: {e}")
-                    continue
-            else:
-                # 任务编号存在但没有窗口行，直接跳过
-                continue
 
-    # 生成 DataFrame
+            if len(parts) >= 13 and current_task is not None:
+                try:
+                    start_time = parse_datetime(parts, 0)
+                    end_time = parse_datetime(parts, 6)
+                    window_length = float(parts[12])
+
+                    # VTW 中点，也就是示例代码里的 middle
+                    best_time = start_time + (end_time - start_time) / 2.0
+
+                    window_list.append([
+                        current_task,
+                        start_time,
+                        end_time,
+                        window_length,
+                        best_time
+                    ])
+
+                except Exception as e:
+                    print(f"窗口行解析失败：{line}，错误：{e}")
+
     if window_list:
-        df = pd.DataFrame(window_list, columns=['task_id', 'start_time', 'end_time', 'window_length'])
+        df = pd.DataFrame(
+            window_list,
+            columns=[
+                "task_id",
+                "start_time",
+                "end_time",
+                "window_length",
+                "best_time"
+            ]
+        )
+
         df.to_csv(output_file, index=False)
-        print(f"{input_file} -> {output_file} （只包含有窗口的任务）")
+        print(f"{input_file} -> {output_file}")
+
     else:
-        print(f"{input_file} 没有任何有效窗口，未生成 CSV")
+        print(f"{input_file} 没有有效窗口")
