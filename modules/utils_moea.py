@@ -1,6 +1,7 @@
 import numpy as np
 import math
 from sklearn.cluster import KMeans
+from pymoo.indicators.hv import Hypervolume
 
 # ------------------------------
 # 支配关系（所有目标越小越好）
@@ -101,3 +102,117 @@ def generate_uniform_weights(Nsub, M):
     W = kmeans.cluster_centers_
     W = W / np.sqrt(np.sum(W**2, axis=1, keepdims=True))
     return W
+
+
+# =========================================================
+# Unified HV calculation
+# 所有算法使用统一 ideal / nadir / reference point 重新计算 HV
+# =========================================================
+
+OBJ_KEYS = ["profit", "load", "attitude", "quality"]
+
+
+def obj_list_to_matrix(obj_list, obj_keys=OBJ_KEYS):
+    """
+    将目标字典列表转为 numpy 矩阵。
+    默认目标顺序：
+        profit   = -total_profit
+        load     = load_balance
+        attitude = attitude_manoeuvre
+        quality  = -image_quality
+
+    所有目标默认都是最小化形式。
+    """
+    if obj_list is None or len(obj_list) == 0:
+        return np.empty((0, len(obj_keys)))
+
+    return np.array(
+        [[obj[k] for k in obj_keys] for obj in obj_list],
+        dtype=float
+    )
+
+
+def compute_global_bounds(all_obj_lists, obj_keys=OBJ_KEYS):
+    """
+    根据所有算法的最终目标值统一计算 ideal / nadir。
+
+    Parameters
+    ----------
+    all_obj_lists : list
+        形式如：
+        [
+            final_obj_mode_sdas,
+            final_obj_mode_sdas_pic,
+            final_obj_mode_sdas_dpic,
+            final_obj_nsga2
+        ]
+
+    Returns
+    -------
+    ideal : np.ndarray
+    nadir : np.ndarray
+    denom : np.ndarray
+    """
+    all_F = []
+
+    for obj_list in all_obj_lists:
+        if obj_list is None or len(obj_list) == 0:
+            continue
+
+        F = obj_list_to_matrix(obj_list, obj_keys)
+        if F.size > 0:
+            all_F.append(F)
+
+    if not all_F:
+        raise ValueError("No objective values found for unified HV calculation.")
+
+    all_F = np.vstack(all_F)
+
+    ideal = np.min(all_F, axis=0)
+    nadir = np.max(all_F, axis=0)
+
+    denom = nadir - ideal
+    denom[denom < 1e-12] = 1.0
+
+    return ideal, nadir, denom
+
+
+def compute_unified_hv(obj_list, ideal, denom, obj_keys=OBJ_KEYS, ref_point=None):
+    """
+    使用统一 ideal / nadir 归一化后计算 HV。
+
+    Parameters
+    ----------
+    obj_list : list[dict]
+        某一个算法的最终目标值列表。
+    ideal : np.ndarray
+        所有算法统一 ideal point。
+    denom : np.ndarray
+        nadir - ideal。
+    ref_point : np.ndarray or None
+        HV reference point。默认使用 1.1。
+
+    Returns
+    -------
+    hv_value : float
+    """
+    if obj_list is None or len(obj_list) == 0:
+        return 0.0
+
+    fronts = non_dominated_sort(obj_list)
+    if not fronts or len(fronts[0]) == 0:
+        return 0.0
+
+    nd_obj = [obj_list[i] for i in fronts[0]]
+    F = obj_list_to_matrix(nd_obj, obj_keys)
+
+    F_norm = (F - ideal) / denom
+
+    # 防止极少数点因为统一边界外推导致异常
+    F_norm = np.clip(F_norm, 0.0, 1.2)
+
+    if ref_point is None:
+        ref_point = np.ones(F_norm.shape[1]) * 1.1
+
+    hv = Hypervolume(ref_point=ref_point)
+    return float(hv(F_norm))

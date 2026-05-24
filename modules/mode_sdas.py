@@ -30,7 +30,8 @@ class MODE_SDAS:
     """
 
     def __init__(self, problem, pop_size=100, generations=200,
-                 Nsub=15, L=10, CR=0.5, F=0.5, ref_front_file=None):
+                 Nsub=15, L=10, CR=0.5, F=0.5, ref_front_file=None,
+                 execute_prob=0.15):
         self.problem = problem
         self.pop_size = pop_size
         self.max_gen = generations
@@ -38,6 +39,8 @@ class MODE_SDAS:
         self.L = L
         self.CR = CR
         self.F = F
+
+        self.execute_prob = float(execute_prob)
 
         self.task_options = self._build_task_options()
         self.task_ids = list(self.task_options.keys())
@@ -187,13 +190,13 @@ class MODE_SDAS:
                 if k <= 0:
                     pop_dec[i, d] = 0
                 else:
-                    if random.random() < 0.2:
-                        pop_dec[i, d] = 0
+                    if np.random.rand() < self.execute_prob:
+                        pop_dec[i, d] = np.random.randint(1, k + 1)
                     else:
-                        pop_dec[i, d] = random.randint(1, k)
+                        pop_dec[i, d] = 0
 
             for d in range(self.D_task, self.D):
-                pop_dec[i, d] = random.random()
+                pop_dec[i, d] = np.random.rand()
 
         return pop_dec
 
@@ -489,10 +492,10 @@ class MODE_SDAS:
 
             print(
                 f"Gen {gen + 1:3d}: "
-                f"profit_max={max(profits):.2f}, profit_avg={np.mean(profits):.2f}, "
-                f"load_min={min(loads):.2f}, att_min={min(attitudes):.2f}, "
-                f"quality_max={max(qualities):.2f}, quality_avg={np.mean(qualities):.2f}, "
-                f"tasks_avg={np.mean(task_counts):.2f}, HV={hv:.4f}, "
+                f"profit_max={max(profits):8.2f}, profit_avg={np.mean(profits):8.2f}, "
+                f"load_min={min(loads):10.2f}, att_min={min(attitudes):10.2f}, "
+                f"quality_max={max(qualities):10.2f}, quality_avg={np.mean(qualities):10.2f}, "
+                f"tasks_avg={np.mean(task_counts):6.2f}, HV={hv:.4f}, "
                 f"feasible ratio={fea_ratio:.2f}"
             )
 

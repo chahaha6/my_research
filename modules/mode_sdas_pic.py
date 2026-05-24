@@ -33,10 +33,13 @@ class MODE_SDAS_PIC:
         The continuous ratio genes are kept and then repaired to [0, 1].
     """
 
+    
+
     def __init__(self, problem, pop_size=100, generations=100,
                  Nsub=9, L=10, Rmem=5, CR=0.5, F=0.5, probVar=0.8,
                  alpha=0.15, sigma=0.01, gamma=0.7,
-                 ref_front_file=None, elite_prob=0.6, archive_size=50):
+                 ref_front_file=None, elite_prob=0.6, archive_size=50,
+                 execute_prob=0.15):
         self.problem = problem
         self.pop_size = pop_size
         self.max_gen = generations
@@ -52,6 +55,7 @@ class MODE_SDAS_PIC:
         self.gamma = gamma
         self.elite_prob = elite_prob
         self.archive_size = archive_size
+        self.execute_prob = float(execute_prob)
 
         self.task_options = self._build_task_options()
         self.task_ids = list(self.task_options.keys())
@@ -80,12 +84,12 @@ class MODE_SDAS_PIC:
         self.mem_theta = np.zeros((self.Rmem, self.Nsub))
 
         # Adaptive weight maintenance.
-        self.check_interval = 12
-        self.weight_deletion_threshold = 2
-        self.max_subspace_num = int(Nsub * 1.5)
-        self.min_subspace_num = max(2, Nsub // 2)
+        self.check_interval = 25                    #每隔多少代检查一次子空间是否需要增删
+        self.weight_deletion_threshold = 5          #子空间连续多少次/多少代没有个体关联后才考虑删除
+        self.max_subspace_num = int(Nsub * 1.5)     # 最大子空间数量。
+        self.min_subspace_num = max(2, Nsub // 2)   # 最小子空间数量。
         self.last_assoc_gen = np.full(Nsub, -1)
-        self.crowd_factor = 0.4
+        self.crowd_factor = 1.5                     # 拥挤区域触发新增子空间的阈值因子。
 
         self.pop_dec = None
         self.pop_obj = None
@@ -222,13 +226,13 @@ class MODE_SDAS_PIC:
                 if k <= 0:
                     pop_dec[i, d] = 0
                 else:
-                    if random.random() < 0.2:
-                        pop_dec[i, d] = 0
+                    if np.random.rand() < self.execute_prob:
+                        pop_dec[i, d] = np.random.randint(1, k + 1)
                     else:
-                        pop_dec[i, d] = random.randint(1, k)
+                        pop_dec[i, d] = 0
 
             for d in range(self.D_task, self.D):
-                pop_dec[i, d] = random.random()
+                pop_dec[i, d] = np.random.rand()
 
         return pop_dec
 
