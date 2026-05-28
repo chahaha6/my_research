@@ -217,7 +217,7 @@ class MODE_SDAS_DUAL_ARCHIVE:
         return pop_dec
 
     def _sample_archive_base(self, parent_dec):
-        """从双档案中抽取 base 向量。优先使用可行精英档案。"""
+        """从双档案中抽取 base 向量。固定概率使用档案，优先使用可行精英档案。"""
         if random.random() >= self.archive_prob:
             return parent_dec.copy()
 

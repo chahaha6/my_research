@@ -1,4 +1,3 @@
-import os
 import numpy as np
 from pathlib import Path
 import pandas as pd
@@ -87,15 +86,19 @@ except Exception:
 # 需要跑哪个算法，就把对应开关改成 True。
 # =========================================================
 
+#MODE_SDAS原始算法
 RUN_MODE_SDAS = False
+#MODE_SDAS + 双档案
 RUN_MODE_SDAS_DUAL_ARCHIVE = False
+#MODE_SDAS + 自适应子空间
 RUN_MODE_SDAS_ADAPTIVE_SUBSPACE = False
+#MODE_SDAS + DPIC only
 RUN_MODE_SDAS_DPIC_ONLY = False
+#MODE-SDAS-DPIC Full
 RUN_MODE_SDAS_DPIC = False
-
-# 新增：MODE-SDAS + DPIC + 双档案，不含子空间自适应增删
+#MODE-SDAS + DPIC + 双档案
 RUN_MODE_SDAS_DPIC_DUAL_ARCHIVE = False
-
+# NSGA-II 基线算法
 RUN_NSGA2 = False
 
 
@@ -113,22 +116,7 @@ CASE_TAG = f"s{NUM_SATS}_t{NUM_TASKS}"
 POP_SIZE = 100
 GENERATIONS = 100
 
-
-def env_float(name, default):
-    value = os.environ.get(name)
-    if value is None or value == "":
-        return default
-    return float(value)
-
-
-def env_int(name, default):
-    value = os.environ.get(name)
-    if value is None or value == "":
-        return default
-    return int(value)
-
-
-NUM_RUNS = env_int("NUM_RUNS", 8)
+NUM_RUNS = 8
 
 # Shared MODE-SDAS-family parameters for fair comparison on the same case.
 MODE_NSUB = 21
@@ -136,7 +124,7 @@ MODE_L = 7
 MODE_RMEM = 10
 MODE_CR = 0.85
 MODE_F = 0.45
-MODE_EXECUTE_PROB = env_float("MODE_EXECUTE_PROB", 0.03)
+MODE_EXECUTE_PROB = 0.03
 
 DPIC_ALPHA = 0.02
 DPIC_SIGMA = 0.003
@@ -150,13 +138,13 @@ ELITE_ARCHIVE_SIZE = 200
 
 MODE_ADAPT_CHECK_INTERVAL = 100
 MODE_WEIGHT_DELETION_THRESHOLD = 100
-MODE_SEMANTIC_ADD_PROB = env_float("MODE_SEMANTIC_ADD_PROB", 0.35)
-MODE_SEMANTIC_ADD_TRIALS = env_int("MODE_SEMANTIC_ADD_TRIALS", 30)
-MODE_SEMANTIC_ADD_MAX = env_int("MODE_SEMANTIC_ADD_MAX", 1)
-MODE_SEMANTIC_DROP_PROB = env_float("MODE_SEMANTIC_DROP_PROB", 0.01)
-MODE_SEMANTIC_WINDOW_PROB = env_float("MODE_SEMANTIC_WINDOW_PROB", 0.15)
-MODE_FINAL_GREEDY_ADD_MAX = env_int("MODE_FINAL_GREEDY_ADD_MAX", 15)
-MODE_FINAL_GREEDY_ADD_TRIALS = env_int("MODE_FINAL_GREEDY_ADD_TRIALS", 120)
+MODE_SEMANTIC_ADD_PROB = 0.35
+MODE_SEMANTIC_ADD_TRIALS = 30
+MODE_SEMANTIC_ADD_MAX = 1
+MODE_SEMANTIC_DROP_PROB = 0.01
+MODE_SEMANTIC_WINDOW_PROB = 0.15
+MODE_FINAL_GREEDY_ADD_MAX = 15
+MODE_FINAL_GREEDY_ADD_TRIALS = 120
 
 
 # =========================================================

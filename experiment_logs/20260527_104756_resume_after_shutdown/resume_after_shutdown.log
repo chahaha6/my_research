@@ -1,0 +1,8 @@
+[2026-05-27T10:47:56] Resume workflow started
+[2026-05-27T10:47:56] Starting batch: F:\Anaconda\python.exe -u run_batch_experiments.py --cases 100 --algorithms mode_sdas_dpic mode_sdas_dpic_dual_archive --clean-results --keep-going --run-id 20260527_104756_s5_t100_remaining
+[2026-05-27T16:19:17] Finished batch 20260527_104756_s5_t100_remaining return_code=0
+[2026-05-27T16:19:17] Batch 20260527_104756_s5_t100_remaining status rows all succeeded
+[2026-05-27T16:19:17] Starting batch: F:\Anaconda\python.exe -u run_batch_experiments.py --cases 300 --algorithms mode_sdas_dual_archive mode_sdas_dpic mode_sdas_dpic_dual_archive --clean-results --keep-going --run-id 20260527_161917_s5_t300_rerun
+[2026-05-27T17:15:59] Finished batch 20260527_161917_s5_t300_rerun return_code=4294967295
+[2026-05-27T17:15:59] Batch 20260527_161917_s5_t300_rerun status rows all succeeded
+[2026-05-27T17:15:59] Starting batch: F:\Anaconda\python.exe -u run_batch_experiments.py --cases 500 1000 --algorithms all --clean-results --keep-going --run-id 20260527_171559_s5_t500_t1000

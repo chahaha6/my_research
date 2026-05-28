@@ -1,0 +1,6 @@
+case,algorithm,started_at,finished_at,return_code,log_file
+s5_t100,mode_sdas_dual_archive,2026-05-27T17:52:32,2026-05-27T19:12:41,0,F:\my_research\experiment_logs\20260527_175232_fixed_archive_t100_t300\s5_t100\mode_sdas_dual_archive.log
+s5_t100,mode_sdas_dpic,2026-05-27T19:12:41,2026-05-27T21:25:07,0,F:\my_research\experiment_logs\20260527_175232_fixed_archive_t100_t300\s5_t100\mode_sdas_dpic.log
+s5_t100,mode_sdas_dpic_dual_archive,2026-05-27T21:25:07,2026-05-28T00:13:21,0,F:\my_research\experiment_logs\20260527_175232_fixed_archive_t100_t300\s5_t100\mode_sdas_dpic_dual_archive.log
+s5_t300,mode_sdas_dual_archive,2026-05-28T00:13:21,2026-05-28T03:19:09,0,F:\my_research\experiment_logs\20260527_175232_fixed_archive_t100_t300\s5_t300\mode_sdas_dual_archive.log
+s5_t300,mode_sdas_dpic,2026-05-28T03:19:09,2026-05-28T09:32:28,0,F:\my_research\experiment_logs\20260527_175232_fixed_archive_t100_t300\s5_t300\mode_sdas_dpic.log

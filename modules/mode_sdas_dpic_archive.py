@@ -27,7 +27,8 @@ class MODE_SDAS_DPIC_DUAL_ARCHIVE:
     2. 增加两个外部档案：
        - feasible_archive：保存可行非支配精英解；
        - infeasible_archive：保存低约束违反度的不可行解；
-    3. 在 DE 变异时，以 archive_prob 的概率从档案中选 base 向量，引导搜索；
+    3. 在 DE 变异时，以 archive_prob 的固定概率从双档案中选 base 向量，
+       优先使用可行精英档案，引导搜索；
     4. 在 DE 子代生成后加入 DPIC 离散种群图像卷积修复。
 
     注意：本文件不包含子空间自适应增删，适合用作最终主算法的
@@ -232,7 +233,7 @@ class MODE_SDAS_DPIC_DUAL_ARCHIVE:
         return pop_dec
 
     def _sample_archive_base(self, parent_dec):
-        """从双档案中抽取 base 向量。优先使用可行精英档案。"""
+        """从双档案中抽取 base 向量。固定概率使用档案，优先使用可行精英档案。"""
         if random.random() >= self.archive_prob:
             return parent_dec.copy()
 

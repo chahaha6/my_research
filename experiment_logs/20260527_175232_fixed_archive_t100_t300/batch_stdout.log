@@ -1,0 +1,24 @@
+Batch experiment plan
+  cases: s5_t100, s5_t300
+  algorithms: mode_sdas_dual_archive, mode_sdas_dpic, mode_sdas_dpic_dual_archive
+  log_dir: F:\my_research\experiment_logs\20260527_175232_fixed_archive_t100_t300
+  results_root: F:\my_research\results
+  clean_results: True
+  skip_existing: False
+[2026-05-27T17:52:32] START s5_t100 / mode_sdas_dual_archive
+  log: F:\my_research\experiment_logs\20260527_175232_fixed_archive_t100_t300\s5_t100\mode_sdas_dual_archive.log
+[2026-05-27T19:12:41] END s5_t100 / mode_sdas_dual_archive return_code=0
+[2026-05-27T19:12:41] START s5_t100 / mode_sdas_dpic
+  log: F:\my_research\experiment_logs\20260527_175232_fixed_archive_t100_t300\s5_t100\mode_sdas_dpic.log
+[2026-05-27T21:25:07] END s5_t100 / mode_sdas_dpic return_code=0
+[2026-05-27T21:25:07] START s5_t100 / mode_sdas_dpic_dual_archive
+  log: F:\my_research\experiment_logs\20260527_175232_fixed_archive_t100_t300\s5_t100\mode_sdas_dpic_dual_archive.log
+[2026-05-28T00:13:21] END s5_t100 / mode_sdas_dpic_dual_archive return_code=0
+[2026-05-28T00:13:21] START s5_t300 / mode_sdas_dual_archive
+  log: F:\my_research\experiment_logs\20260527_175232_fixed_archive_t100_t300\s5_t300\mode_sdas_dual_archive.log
+[2026-05-28T03:19:09] END s5_t300 / mode_sdas_dual_archive return_code=0
+[2026-05-28T03:19:09] START s5_t300 / mode_sdas_dpic
+  log: F:\my_research\experiment_logs\20260527_175232_fixed_archive_t100_t300\s5_t300\mode_sdas_dpic.log
+[2026-05-28T09:32:28] END s5_t300 / mode_sdas_dpic return_code=0
+[2026-05-28T09:32:28] START s5_t300 / mode_sdas_dpic_dual_archive
+  log: F:\my_research\experiment_logs\20260527_175232_fixed_archive_t100_t300\s5_t300\mode_sdas_dpic_dual_archive.log

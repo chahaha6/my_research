@@ -1,0 +1,21 @@
+批量实验计划
+  数据集：s5_t100, s5_t300, s5_t500, s5_t1000
+  算法：mode_sdas, mode_sdas_dual_archive, mode_sdas_adaptive_subspace, mode_sdas_dpic_only, mode_sdas_dpic, mode_sdas_dpic_dual_archive, nsga2
+  日志目录：F:\my_research\experiment_logs\20260524_224123
+  结果目录：F:\my_research\results
+  清理旧结果：True
+  跳过已有结果：False
+[2026-05-24T22:41:23] 开始 s5_t100 / mode_sdas
+  日志：F:\my_research\experiment_logs\20260524_224123\s5_t100\mode_sdas.log
+[2026-05-25T00:05:17] 结束 s5_t100 / mode_sdas 返回码=0
+[2026-05-25T00:05:17] 开始 s5_t100 / mode_sdas_dual_archive
+  日志：F:\my_research\experiment_logs\20260524_224123\s5_t100\mode_sdas_dual_archive.log
+[2026-05-25T01:27:01] 结束 s5_t100 / mode_sdas_dual_archive 返回码=0
+[2026-05-25T01:27:01] 开始 s5_t100 / mode_sdas_adaptive_subspace
+  日志：F:\my_research\experiment_logs\20260524_224123\s5_t100\mode_sdas_adaptive_subspace.log
+[2026-05-25T02:30:24] 结束 s5_t100 / mode_sdas_adaptive_subspace 返回码=0
+[2026-05-25T02:30:24] 开始 s5_t100 / mode_sdas_dpic_only
+  日志：F:\my_research\experiment_logs\20260524_224123\s5_t100\mode_sdas_dpic_only.log
+[2026-05-25T04:41:58] 结束 s5_t100 / mode_sdas_dpic_only 返回码=0
+[2026-05-25T04:41:58] 开始 s5_t100 / mode_sdas_dpic
+  日志：F:\my_research\experiment_logs\20260524_224123\s5_t100\mode_sdas_dpic.log

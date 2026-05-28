@@ -1,0 +1,27 @@
+批量实验计划
+  数据集：s5_t100, s5_t300
+  算法：mode_sdas_dual_archive, mode_sdas_dpic, mode_sdas_dpic_dual_archive
+  日志目录：F:\my_research\experiment_logs\20260527_004824_rerun_t100_t300
+  结果目录：F:\my_research\results
+  清理旧结果：True
+  跳过已有结果：False
+[2026-05-27T00:48:24] 开始 s5_t100 / mode_sdas_dual_archive
+  日志：F:\my_research\experiment_logs\20260527_004824_rerun_t100_t300\s5_t100\mode_sdas_dual_archive.log
+[2026-05-27T02:22:01] 结束 s5_t100 / mode_sdas_dual_archive 返回码=0
+[2026-05-27T02:22:01] 开始 s5_t100 / mode_sdas_dpic
+  日志：F:\my_research\experiment_logs\20260527_004824_rerun_t100_t300\s5_t100\mode_sdas_dpic.log
+[2026-05-27T02:23:45] 结束 s5_t100 / mode_sdas_dpic 返回码=1073807364
+[2026-05-27T02:23:45] 开始 s5_t100 / mode_sdas_dpic_dual_archive
+  日志：F:\my_research\experiment_logs\20260527_004824_rerun_t100_t300\s5_t100\mode_sdas_dpic_dual_archive.log
+[2026-05-27T02:23:46] 结束 s5_t100 / mode_sdas_dpic_dual_archive 返回码=3221226091
+[2026-05-27T02:23:46] 开始 s5_t300 / mode_sdas_dual_archive
+  日志：F:\my_research\experiment_logs\20260527_004824_rerun_t100_t300\s5_t300\mode_sdas_dual_archive.log
+[2026-05-27T02:23:46] 结束 s5_t300 / mode_sdas_dual_archive 返回码=3221226091
+[2026-05-27T02:23:46] 开始 s5_t300 / mode_sdas_dpic
+  日志：F:\my_research\experiment_logs\20260527_004824_rerun_t100_t300\s5_t300\mode_sdas_dpic.log
+[2026-05-27T02:23:46] 结束 s5_t300 / mode_sdas_dpic 返回码=3221226091
+[2026-05-27T02:23:46] 开始 s5_t300 / mode_sdas_dpic_dual_archive
+  日志：F:\my_research\experiment_logs\20260527_004824_rerun_t100_t300\s5_t300\mode_sdas_dpic_dual_archive.log
+[2026-05-27T02:23:46] 结束 s5_t300 / mode_sdas_dpic_dual_archive 返回码=3221226091
+批量实验完成。
+状态文件：F:\my_research\experiment_logs\20260527_004824_rerun_t100_t300\status.csv

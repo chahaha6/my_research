@@ -20,6 +20,12 @@ DPIC is applied only to the first D_task discrete genes.  The continuous ratio
 part is kept unchanged and repaired to [0, 1].  This turns the original PIC idea
 into a discrete population-image-convolution repair operator for scheduling
 chromosomes without corrupting the continuous timing component.
+
+Archive mechanism
+-----------------
+This full variant uses two archives:
+    - feasible_archive: high-quality feasible non-dominated elite solutions;
+    - infeasible_archive: low-constraint-violation infeasible boundary solutions.
 """
 
 import os
@@ -74,6 +80,8 @@ class MODE_SDAS_DPIC:
         ref_front_file: Optional[str] = None,
         elite_prob: float = 0.15,
         archive_size: int = 100,
+        feasible_archive_size: Optional[int] = None,
+        infeasible_archive_size: Optional[int] = None,
         use_dpic: bool = True,
     ):
         self.problem = problem
@@ -91,6 +99,12 @@ class MODE_SDAS_DPIC:
         self.gamma = float(gamma)
         self.elite_prob = float(elite_prob)
         self.archive_size = int(archive_size)
+        self.feasible_archive_size = int(
+            archive_size if feasible_archive_size is None else feasible_archive_size
+        )
+        self.infeasible_archive_size = int(
+            archive_size if infeasible_archive_size is None else infeasible_archive_size
+        )
         self.use_dpic = bool(use_dpic)
 
         self.task_options = self._build_task_options()
@@ -135,9 +149,11 @@ class MODE_SDAS_DPIC:
         self.pop_cv = None
         self.associate = None
 
-        # External feasible elite archive.
-        self.external_archive_dec: List[np.ndarray] = []
-        self.external_archive_obj: List[dict] = []
+        # 双档案：可行精英解保证收敛，不可行低 CV 解引导可行边界探索。
+        self.feasible_archive_dec: List[np.ndarray] = []
+        self.feasible_archive_obj: List[dict] = []
+        self.infeasible_archive_dec: List[np.ndarray] = []
+        self.infeasible_archive_cv: List[float] = []
 
         self.hv_history: List[float] = []
         self.hv_indicator = None
@@ -275,6 +291,18 @@ class MODE_SDAS_DPIC:
 
         return pop_dec
 
+    def _sample_archive_base(self, parent_dec):
+        if random.random() >= self.elite_prob:
+            return parent_dec.copy()
+
+        if self.feasible_archive_dec:
+            return np.array(random.choice(self.feasible_archive_dec), dtype=float).copy()
+
+        if self.infeasible_archive_dec:
+            return np.array(random.choice(self.infeasible_archive_dec), dtype=float).copy()
+
+        return parent_dec.copy()
+
     def de_operator(self, parent_idx):
         parent_dec = self.pop_dec[parent_idx]
         sub = int(self.associate[parent_idx]) if self.associate is not None else -1
@@ -289,11 +317,7 @@ class MODE_SDAS_DPIC:
         )
 
         # Archive-guided base vector.
-        use_archive = random.random() < self.elite_prob and len(self.external_archive_dec) > 0
-        if use_archive:
-            base_dec = np.array(random.choice(self.external_archive_dec), dtype=float).copy()
-        else:
-            base_dec = parent_dec.copy()
+        base_dec = self._sample_archive_base(parent_dec)
 
         # Prefer feasible individuals in selected neighboring subspaces.
         avail = [
@@ -573,44 +597,53 @@ class MODE_SDAS_DPIC:
         self.pop_cv = [combined_cv[i] for i in selected]
 
     def update_archive(self):
-        if not self.pop_obj:
+        if self.pop_dec is None or not self.pop_obj:
             return
 
+        # ---------- Feasible elite archive ----------
         feasible_idx = [i for i, f in enumerate(self.pop_feas) if f]
-        if not feasible_idx:
-            return
+        cur_fea_dec = [self.pop_dec[i].copy() for i in feasible_idx]
+        cur_fea_obj = [self.pop_obj[i] for i in feasible_idx]
 
-        cur_dec = [self.pop_dec[i].copy() for i in feasible_idx]
-        cur_obj = [self.pop_obj[i] for i in feasible_idx]
+        combined_fea_obj = self.feasible_archive_obj + cur_fea_obj
+        combined_fea_dec = self.feasible_archive_dec + cur_fea_dec
 
-        combined_obj = self.external_archive_obj + cur_obj
-        combined_dec = self.external_archive_dec + cur_dec
-        if not combined_obj:
-            return
+        if combined_fea_obj:
+            fronts = non_dominated_sort(combined_fea_obj)
+            new_fea_obj = []
+            new_fea_dec = []
 
-        fronts = non_dominated_sort(combined_obj)
-        new_archive_obj = []
-        new_archive_dec = []
-        count = 0
+            for front in fronts:
+                if len(new_fea_dec) >= self.feasible_archive_size:
+                    break
+                if len(new_fea_dec) + len(front) <= self.feasible_archive_size:
+                    chosen = front
+                else:
+                    need = self.feasible_archive_size - len(new_fea_dec)
+                    cd = crowding_distance(front, combined_fea_obj)
+                    chosen = sorted(front, key=lambda i: cd[i], reverse=True)[:need]
 
-        for front in fronts:
-            if count >= self.archive_size:
-                break
-            if count + len(front) <= self.archive_size:
-                chosen = front
-            else:
-                need = self.archive_size - count
-                cd = crowding_distance(front, combined_obj)
-                chosen = sorted(front, key=lambda i: cd[i], reverse=True)[:need]
+                for i in chosen:
+                    new_fea_obj.append(combined_fea_obj[i])
+                    new_fea_dec.append(np.array(combined_fea_dec[i], dtype=float).copy())
 
-            for i in chosen:
-                new_archive_obj.append(combined_obj[i])
-                new_archive_dec.append(np.array(combined_dec[i], dtype=float).copy())
+            self.feasible_archive_obj = new_fea_obj
+            self.feasible_archive_dec = new_fea_dec
 
-            count += len(chosen)
+        # ---------- Infeasible boundary archive ----------
+        infeasible_idx = [i for i, f in enumerate(self.pop_feas) if not f]
+        cur_inf_dec = [self.pop_dec[i].copy() for i in infeasible_idx]
+        cur_inf_cv = [float(self.pop_cv[i]) for i in infeasible_idx]
 
-        self.external_archive_obj = new_archive_obj
-        self.external_archive_dec = new_archive_dec
+        combined_inf_dec = self.infeasible_archive_dec + cur_inf_dec
+        combined_inf_cv = self.infeasible_archive_cv + cur_inf_cv
+
+        if combined_inf_dec:
+            order = np.argsort(combined_inf_cv)[:self.infeasible_archive_size]
+            self.infeasible_archive_dec = [
+                np.array(combined_inf_dec[i], dtype=float).copy() for i in order
+            ]
+            self.infeasible_archive_cv = [float(combined_inf_cv[i]) for i in order]
 
     def compute_hv(self):
         if Hypervolume is None:
@@ -824,7 +857,9 @@ class MODE_SDAS_DPIC:
                 f"load_min={min(loads):.2f}, att_min={min(attitudes):.2f}, "
                 f"quality_max={max(qualities):.2f}, quality_avg={np.mean(qualities):.2f}, "
                 f"tasks_avg={np.mean(task_counts):.2f}, HV={hv:.4f}, "
-                f"feasible ratio={fea_ratio:.2f}, Nsub={self.Nsub}"
+                f"feasible ratio={fea_ratio:.2f}, Nsub={self.Nsub}, "
+                f"fea_archive={len(self.feasible_archive_dec)}, "
+                f"inf_archive={len(self.infeasible_archive_dec)}"
             )
 
         return self.pop_dec, self.pop_raw, self.pop_obj, self.hv_history
