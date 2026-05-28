@@ -1,5 +1,0 @@
-case,algorithm,started_at,finished_at,return_code,log_file
-s5_t100,mode_sdas,2026-05-24T22:41:23,2026-05-25T00:05:17,0,F:\my_research\experiment_logs\20260524_224123\s5_t100\mode_sdas.log
-s5_t100,mode_sdas_dual_archive,2026-05-25T00:05:17,2026-05-25T01:27:01,0,F:\my_research\experiment_logs\20260524_224123\s5_t100\mode_sdas_dual_archive.log
-s5_t100,mode_sdas_adaptive_subspace,2026-05-25T01:27:01,2026-05-25T02:30:24,0,F:\my_research\experiment_logs\20260524_224123\s5_t100\mode_sdas_adaptive_subspace.log
-s5_t100,mode_sdas_dpic_only,2026-05-25T02:30:24,2026-05-25T04:41:58,0,F:\my_research\experiment_logs\20260524_224123\s5_t100\mode_sdas_dpic_only.log

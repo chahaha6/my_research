@@ -1,7 +1,8 @@
 Algorithm,Unified_HV
-mode_sdas,0.8137103567968875
-mode_sdas_adaptive_subspace,0.8293889737791809
-mode_sdas_dpic,0.7854059816226315
-mode_sdas_dpic_only,0.774857789495081
-mode_sdas_dual_archive,0.8154764620114164
-nsga2,0.7373381068963168
+mode_sdas,0.7689069929177008
+mode_sdas_adaptive_subspace,0.7837330663850854
+mode_sdas_dpic,0.7422964756661126
+mode_sdas_dpic_dual_archive,0.7709378429061374
+mode_sdas_dpic_only,0.7324379954484939
+mode_sdas_dual_archive,0.7705799585067914
+nsga2,0.6972643418772796

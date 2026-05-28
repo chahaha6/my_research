@@ -1,3 +1,0 @@
-case,algorithm,started_at,finished_at,return_code,log_file
-s5_t100,mode_sdas_dpic,2026-05-27T10:47:56,2026-05-27T13:37:24,0,F:\my_research\experiment_logs\20260527_104756_s5_t100_remaining\s5_t100\mode_sdas_dpic.log
-s5_t100,mode_sdas_dpic_dual_archive,2026-05-27T13:37:24,2026-05-27T16:19:17,0,F:\my_research\experiment_logs\20260527_104756_s5_t100_remaining\s5_t100\mode_sdas_dpic_dual_archive.log

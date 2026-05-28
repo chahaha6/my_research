@@ -89,15 +89,15 @@ except Exception:
 #MODE_SDAS原始算法
 RUN_MODE_SDAS = False
 #MODE_SDAS + 双档案
-RUN_MODE_SDAS_DUAL_ARCHIVE = False
+RUN_MODE_SDAS_DUAL_ARCHIVE = True
 #MODE_SDAS + 自适应子空间
 RUN_MODE_SDAS_ADAPTIVE_SUBSPACE = False
 #MODE_SDAS + DPIC only
-RUN_MODE_SDAS_DPIC_ONLY = False
+RUN_MODE_SDAS_DPIC_ONLY = True
 #MODE-SDAS-DPIC Full
 RUN_MODE_SDAS_DPIC = False
 #MODE-SDAS + DPIC + 双档案
-RUN_MODE_SDAS_DPIC_DUAL_ARCHIVE = False
+RUN_MODE_SDAS_DPIC_DUAL_ARCHIVE = True
 # NSGA-II 基线算法
 RUN_NSGA2 = False
 
@@ -114,9 +114,9 @@ NUM_TASKS = 500      # 任务数量：用于结果目录命名；实际任务数
 CASE_TAG = f"s{NUM_SATS}_t{NUM_TASKS}"
 
 POP_SIZE = 100
-GENERATIONS = 100
+GENERATIONS = 60
 
-NUM_RUNS = 8
+NUM_RUNS = 4
 
 # Shared MODE-SDAS-family parameters for fair comparison on the same case.
 MODE_NSUB = 21

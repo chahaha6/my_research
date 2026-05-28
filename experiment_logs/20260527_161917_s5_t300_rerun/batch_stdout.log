@@ -1,9 +1,0 @@
-批量实验计划
-  数据集：s5_t300
-  算法：mode_sdas_dual_archive, mode_sdas_dpic, mode_sdas_dpic_dual_archive
-  日志目录：F:\my_research\experiment_logs\20260527_161917_s5_t300_rerun
-  结果目录：F:\my_research\results
-  清理旧结果：True
-  跳过已有结果：False
-[2026-05-27T16:19:17] 开始 s5_t300 / mode_sdas_dual_archive
-  日志：F:\my_research\experiment_logs\20260527_161917_s5_t300_rerun\s5_t300\mode_sdas_dual_archive.log
