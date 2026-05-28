@@ -125,8 +125,8 @@ class MODE_SDAS_DPIC:
         self.zideal = None
 
         # DPIC/PIC internal variables.
-        self.r1 = 0.35
-        self.r2 = 0.75
+        self.r1 = 0.25
+        self.r2 = 0.7
         self.S = 1.0
 
         # Subspace adaptive selection memory.

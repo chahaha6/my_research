@@ -1,0 +1,11 @@
+﻿Algorithm,Budget,Source,Unified_HV
+mode_sdas_dpic_dual_archive,8轮100代,mixed,0.8537129880614002
+mode_sdas_dual_archive,8轮100代,mixed,0.8344301567986823
+mode_sdas_adaptive_subspace,8轮100代,mixed,0.8230491553923236
+mode_sdas_dpic,8轮100代,mixed,0.795710746321078
+mode_sdas,8轮100代,mixed,0.7887037854015246
+mode_sdas_dpic_only,8轮100代,mixed,0.7616367357247587
+mode_sdas_dpic_dual_archive,4轮60代,mixed,0.7394009924692533
+mode_sdas_dual_archive,4轮60代,mixed,0.7329941150663088
+mode_sdas_dpic_only,4轮60代,mixed,0.7047126318529245
+NSGA2,8轮100代,mixed,0.6764739516477083

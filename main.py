@@ -147,6 +147,20 @@ MODE_FINAL_GREEDY_ADD_MAX = 15
 MODE_FINAL_GREEDY_ADD_TRIALS = 120
 
 
+def result_budget_label():
+    return f"{NUM_RUNS}轮{GENERATIONS}代"
+
+
+def result_algo_label(algo_tag):
+    if algo_tag == "nsga2":
+        return "NSGA2"
+    return algo_tag
+
+
+def result_file_tag(algo_tag):
+    return f"{result_algo_label(algo_tag)}-{result_budget_label()}"
+
+
 # =========================================================
 # 保存 final_obj，用于之后统一 HV
 # =========================================================
@@ -166,7 +180,7 @@ def save_final_objs(final_objs_all_runs, results_dir, algo_tag):
             rows.append(row)
 
     df = pd.DataFrame(rows, columns=columns)
-    out_file = results_dir / f"final_objs_{algo_tag}.csv"
+    out_file = results_dir / f"final_objs_{result_file_tag(algo_tag)}.csv"
     df.to_csv(out_file, index=False)
     print(f"Final objective values saved to {out_file}")
 
@@ -213,7 +227,7 @@ def compute_unified_hv_from_saved(results_dir):
         })
 
     df_hv = pd.DataFrame(rows)
-    hv_file = results_dir / "unified_hv_from_saved_final_objs.csv"
+    hv_file = results_dir / f"unified_hv_from_saved_final_objs-{result_budget_label()}.csv"
     df_hv.to_csv(hv_file, index=False)
 
     bounds_df = pd.DataFrame({
@@ -222,7 +236,7 @@ def compute_unified_hv_from_saved(results_dir):
         "Nadir": nadir,
         "Denom": denom
     })
-    bounds_file = results_dir / "unified_hv_bounds.csv"
+    bounds_file = results_dir / f"unified_hv_bounds-{result_budget_label()}.csv"
     bounds_df.to_csv(bounds_file, index=False)
 
     print(f"\nUnified HV saved to {hv_file}")
@@ -368,7 +382,9 @@ def run_one_algorithm(algo_tag, algo_name, build_algorithm, results_dir):
     hv_array = np.array(hv_histories)
     mean_hv = np.mean(hv_array, axis=0)
 
-    hv_avg_file = results_dir / f"hv_avg_{NUM_RUNS}runs_{algo_tag}.csv"
+    file_tag = result_file_tag(algo_tag)
+
+    hv_avg_file = results_dir / f"hv_avg_{file_tag}.csv"
     np.savetxt(hv_avg_file, mean_hv, delimiter=",")
     print(f"\nAverage HV history saved to {hv_avg_file}")
 
@@ -400,7 +416,7 @@ def run_one_algorithm(algo_tag, algo_name, build_algorithm, results_dir):
     }
 
     df_summary = pd.DataFrame(summary_dict)
-    summary_file = results_dir / f"summary_{NUM_RUNS}runs_{algo_tag}.csv"
+    summary_file = results_dir / f"summary_{file_tag}.csv"
     df_summary.to_csv(summary_file, index=False)
     print(f"Summary of best objectives saved to {summary_file}")
 
@@ -426,7 +442,7 @@ def run_one_algorithm(algo_tag, algo_name, build_algorithm, results_dir):
     plt.legend()
     plt.grid(True, alpha=0.3)
 
-    plot_path = results_dir / f"hv_avg_convergence_{algo_tag}.png"
+    plot_path = results_dir / f"hv_avg_convergence_{file_tag}.png"
     plt.savefig(plot_path, dpi=150, bbox_inches="tight")
     plt.close()
 

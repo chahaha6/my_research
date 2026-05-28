@@ -101,8 +101,8 @@ class MODE_SDAS_DPIC_ONLY:
         self.gamma = float(gamma)
         self.use_dpic = bool(use_dpic)
         self.execute_prob = float(execute_prob)
-        self.r1 = 0.6
-        self.r2 = 0.85
+        self.r1 = 0.25
+        self.r2 = 0.7
         self.S = 1.0
 
         # Mixed 2D encoding.
